@@ -3,22 +3,23 @@ This script loops through all entries, categories and chosen metadata profile (o
 
 # Configurations and running the script
 To use this script, follow these steps:
+
 1. Download the Kaltura PHP 5.3+ API Client Library and extract into the /kaltura-client directory
 2. Open the accountdump.php file, and configure the following parameters:  
-* PARTNER_ID: The Kaltura Account Partner ID
-* PARTNER_NAME: The Name of the Account for logging (this doesn't really influence anything but logging...)
-* ADMIN_SECRET: The Kaltura Account ADMIN Secret (The script must run with Admin KS)
-* SERVICE_URL: The full base URL to the Kaltura server API endpoint
-* KS_EXPIRY_TIME: How long in seconds should the Kaltura session be? preferably this should be set to long, since this script may run for a while if the account has many entries.
-* PARENT_CATEGORIES: Any IDs of Kaltura Categories you'd like to limit the export to
-* FILTER_TAGS: Any tags to filter by (tagsMultiLikeOr)
-* DEBUG_PRINTS: Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
-* CYCLE_SIZES: This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your serve
-r, generally 300 should be a good number.
-* METADATA_PROFILE_ID: The profile id of the custom metadata profile to get its fields per entry
-* ERROR_LOG_FILE: The name of the KalturaLogger export file
-* STOP_DATE_FOR_EXPORT: Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
-* $this->exportFileName (inside the run function): defines the file name template (without extension) that will be used to name the exported excel file.
+	* PARTNER_ID: The Kaltura Account Partner ID
+	* PARTNER_NAME: The Name of the Account for logging (this doesn't really influence anything but logging...)
+	* ADMIN_SECRET: The Kaltura Account ADMIN Secret (The script must run with Admin KS)
+	* SERVICE_URL: The full base URL to the Kaltura server API endpoint
+	* KS_EXPIRY_TIME: How long in seconds should the Kaltura session be? preferably this should be set to long, since this script may run for a while if the account has many entries.
+	* PARENT_CATEGORIES: Any IDs of Kaltura Categories you'd like to limit the export to
+	* FILTER_TAGS: Any tags to filter by (tagsMultiLikeOr)
+	* DEBUG_PRINTS: Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
+	* CYCLE_SIZES: This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your serve
+	r, generally 300 should be a good number.
+	* METADATA_PROFILE_ID: The profile id of the custom metadata profile to get its fields per entry
+	* ERROR_LOG_FILE: The name of the KalturaLogger export file
+	* STOP_DATE_FOR_EXPORT: Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
+	* $this->exportFileName (inside the run function): defines the file name template (without extension) that will be used to name the exported excel file.
   
 When done configuring the script per the above parameters, you can run the script using PHP CLI via commandline:  
 ```php
