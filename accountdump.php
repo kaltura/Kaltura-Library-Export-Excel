@@ -3,7 +3,7 @@ set_time_limit(0);
 ini_set( 'memory_limit' , '1024M' );
 error_reporting(E_ALL | E_STRICT);
 ini_set('display_errors', 1);
-date_default_timezone_set('Europe/London'); //make sure to set the expected timezone
+date_default_timezone_set('America/New_York'); //make sure to set the expected timezone
 
 require_once(dirname (__FILE__) . '/kaltura-client/KalturaClient.php');
 require_once(dirname (__FILE__) . '/php-excel/php-excel.class.php');
@@ -12,20 +12,21 @@ class KalturaContentAnalytics implements IKalturaLogger
 {
 	const PARTNER_ID = 000000;  //The Kaltura Account Partner ID
 	const PARTNER_NAME = 'Account Name'; //The Name of the Account for logging and exported filename
-	const ADMIN_SECRET = 'a0aaa0a0a0a0a0a0a0a0a0a'; //The Kaltura Account ADMIN Secret (The script must run with Admin KS)
-	const SERVICE_URL = 'http://cdnapi.kaltura.com'; //The full base URL to the Kaltura server API endpoint
+	const ADMIN_SECRET = 'a0aaa0a0a0a0a0a0a0a0a'; //The Kaltura Account ADMIN Secret (The script must run with Admin KS)
+	const SERVICE_URL = 'http://www.kaltura.com'; //The base URL to the Kaltura server API endpoint
 	const KS_EXPIRY_TIME = 86000; //How long in seconds should the Kaltura session be? preferably this should be set to long, since this script may run for a while if the account has many entries.
 	const PARENT_CATEGORIES = ''; //Any IDs of Kaltura Categories you'd like to limit the export to
 	const FILTER_TAGS = ''; //Any tags to filter by (tagsMultiLikeOr)
 	const DEBUG_PRINTS = TRUE; //Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
-	const CYCLE_SIZES = 200; //This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your server, generally 300 should be a good number.
-	const METADATA_PROFILE_ID = 0; //The profile id of the custom metadata profile to get its fields per entry
+	const CYCLE_SIZES = 250; //This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your server, generally 300 should be a good number.
+	const METADATA_PROFILE_ID = 27431; //The profile id of the custom metadata profile to get its fields per entry
 	const ERROR_LOG_FILE = 'kaltura_logger.txt'; //The name of the KalturaLogger export file
 	//defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
-	const STOP_DATE_FOR_EXPORT = '45 days ago';
+	const STOP_DATE_FOR_EXPORT = null; //'45 days ago';
 
 	private $stopDateForCreatedAtFilter = null;
-	private $exportFileName = null;
+
+	private $exportFileName = 'account-entries-dump'; //This sets the name of the output excel file (without .xsl extension)
 
 	private $client = null;
 	private $kConfig = null;
@@ -38,6 +39,9 @@ class KalturaContentAnalytics implements IKalturaLogger
 
 	public function run()
 	{
+		//Reset the log file:
+		$errline = "Here you'll find the log form the Kaltura Client library, in case issues occur you can use this file to investigate and report errors.";
+		file_put_contents(KalturaContentAnalytics::ERROR_LOG_FILE, $errline);
 		//This sets how far back we'd like to export entries (list is ordered in descending order from today backward)
 		if (KalturaContentAnalytics::STOP_DATE_FOR_EXPORT != null && KalturaContentAnalytics::STOP_DATE_FOR_EXPORT != -1) {
 			$this->stopDateForCreatedAtFilter = strtotime(KalturaContentAnalytics::STOP_DATE_FOR_EXPORT);
@@ -50,10 +54,10 @@ class KalturaContentAnalytics implements IKalturaLogger
 		$kConfig = new KalturaConfiguration(KalturaContentAnalytics::PARTNER_ID);
 		$kConfig->serviceUrl = KalturaContentAnalytics::SERVICE_URL;
 		$kConfig->setLogger($this);	
-		$client = new KalturaClient($kConfig);
+		$this->client = new KalturaClient($kConfig);
 
-		$ks = $client->session->start(KalturaContentAnalytics::ADMIN_SECRET, 'video-minutes-calc', KalturaSessionType::ADMIN, KalturaContentAnalytics::PARTNER_ID, KalturaContentAnalytics::KS_EXPIRY_TIME, 'disableentitlement,list:*');
-		$client->setKs($ks);
+		$ks = $this->client->session->start(KalturaContentAnalytics::ADMIN_SECRET, 'video-minutes-calc', KalturaSessionType::ADMIN, KalturaContentAnalytics::PARTNER_ID, KalturaContentAnalytics::KS_EXPIRY_TIME, 'disableentitlement,list:*');
+		$this->client->setKs($ks);
 
 		echo 'for partner: ' . KalturaContentAnalytics::PARTNER_NAME . ', id: ' . KalturaContentAnalytics::PARTNER_ID . ' - ' . PHP_EOL;
 
@@ -66,7 +70,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 		$entfilter->statusEqual = KalturaEntryStatus::READY;
 		//$entfilter->statusIn = "6,-1,-2,0,5,7,4,1,2";
 		$entfilter->mediaTypeEqual = KalturaMediaType::VIDEO;
-		$entries = $this->getFullListOfKalturaObject($entfilter, $client->media, 'id', ['msDuration', 'name', 'userId', 'createdAt'], KalturaContentAnalytics::DEBUG_PRINTS);
+		$entries = $this->getFullListOfKalturaObject($entfilter, $this->client->media, 'id', ['msDuration', 'name', 'userId', 'createdAt'], KalturaContentAnalytics::DEBUG_PRINTS);
 		echo PHP_EOL . 'Total entries to export: ' . count($entries) . PHP_EOL;
 
 		$totalMsDuration = 0;
@@ -88,7 +92,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 			if (($i % KalturaContentAnalytics::CYCLE_SIZES == 0) || ($i == $N-1)) {
 				if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'Categorizing: '.$i.' entries of '.$N.' total entries...'.PHP_EOL;
 				$catfilter->entryIdIn = $entriesToCategorize;
-				$catents = $this->getFullListOfKalturaObject($catfilter, $client->categoryEntry, 'categoryId', 'entryId*', KalturaContentAnalytics::DEBUG_PRINTS);
+				$catents = $this->getFullListOfKalturaObject($catfilter, $this->client->categoryEntry, 'categoryId', 'entryId*', KalturaContentAnalytics::DEBUG_PRINTS);
 				foreach ($catents as $catId => $entryIds) {
 					$categories[$catId] = true;
 					foreach ($entryIds as $entryId) {
@@ -114,7 +118,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 			if (($i % KalturaContentAnalytics::CYCLE_SIZES == 0) || ($i == $N-1)) {
 				if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'Naming categories: '.$i.' categories of '.$N.' total categories...'.PHP_EOL;
 				$catfilter->idIn = $catsToName;
-				$catnames = $this->getFullListOfKalturaObject($catfilter, $client->category, 'id', ['name', 'fullName'], KalturaContentAnalytics::DEBUG_PRINTS);
+				$catnames = $this->getFullListOfKalturaObject($catfilter, $this->client->category, 'id', ['name', 'fullName'], KalturaContentAnalytics::DEBUG_PRINTS);
 				foreach ($catnames as $catId => $catInfo) {
 					$categories[$catId] = $catInfo;
 					foreach ($entries as $entryId => $entry) {
@@ -154,14 +158,14 @@ class KalturaContentAnalytics implements IKalturaLogger
 				$assetFilter->entryIdIn = $entryIdsInCycle;
 				$pager->pageSize = 500;
 				$pager->pageIndex = 1;
-				$entriesCaptions = $client->captionAsset->listAction($assetFilter, $pager);
+				$entriesCaptions = $this->client->captionAsset->listAction($assetFilter, $pager);
 				while(count($entriesCaptions->objects) > 0) {
 					foreach ($entriesCaptions->objects as $capAsset) {
 						if ( ! isset($entries[$capAsset->entryId]['captions'])) $entries[$capAsset->entryId]['captions'] = array();
 						$entries[$capAsset->entryId]['captions'][] = $capAsset->language;
 					}
 					++$pager->pageIndex;
-					$entriesCaptions = $client->captionAsset->listAction($assetFilter, $pager);
+					$entriesCaptions = $this->client->captionAsset->listAction($assetFilter, $pager);
 				}
 				$entryIdsInCycle = '';
 			}
@@ -175,7 +179,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 		$metadatafilter->metadataProfileIdEqual = KalturaContentAnalytics::METADATA_PROFILE_ID;
 		$metadatafilter->metadataObjectTypeEqual = KalturaMetadataObjectType::ENTRY;
 		$pager = new KalturaFilterPager();
-		$metadataPlugin = KalturaMetadataClientPlugin::get($client);
+		$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
 		$N = count($entries);
 		reset($entries);
 		$eid = key($entries);
@@ -305,9 +309,14 @@ class KalturaContentAnalytics implements IKalturaLogger
 				$filter->createdAtLessThanOrEqual = $lastCreatedAt;
 			if($lastObjectIds != '' && property_exists($filter, 'idNotIn'))
 				$filter->idNotIn = $lastObjectIds;
-
-			$filteredListResult = $listService->listAction($filter, $pager);
-
+			try {
+				$filteredListResult = $listService->listAction($filter, $pager);
+			} catch (Exception $err) {
+				echo 'Message: ' .$err->getMessage().PHP_EOL;
+				echo '===========ERROR=========='.PHP_EOL;
+				echo 'Last Kaltura client headers:'.PHP_EOL;
+				print_r($this->client->getResponseHeaders());
+			}
 			if ($totalCount == 0) $totalCount = $filteredListResult->totalCount;
 			if ($printProgress && $totalCount > 0) {
 				$perc = number_format(min($totalCount,($count * $pager->pageSize)) / $totalCount * 100, 2);
