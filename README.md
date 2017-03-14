@@ -11,6 +11,9 @@ To use this script, follow these steps:
 	* ADMIN_SECRET: The Kaltura Account ADMIN Secret (The script must run with Admin KS)
 	* SERVICE_URL: The full base URL to the Kaltura server API endpoint
 	* KS_EXPIRY_TIME: How long in seconds should the Kaltura session be? preferably this should be set to long, since this script may run for a while if the account has many entries.
+	* ENTRY_STATUS_IN: Defines the entry statuses to retrieve  
+	* ENTRY_TYPE_IN: Defines the entry types to retrieve 
+	* ENTRY_FIELDS: The list of entry fields to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entryId, captions and categories will be added to this list
 	* PARENT_CATEGORIES: Any IDs of Kaltura Categories you'd like to limit the export to
 	* FILTER_TAGS: Any tags to filter by (tagsMultiLikeOr)
 	* DEBUG_PRINTS: Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
@@ -18,8 +21,8 @@ To use this script, follow these steps:
 	r, generally 300 should be a good number.
 	* METADATA_PROFILE_ID: The profile id of the custom metadata profile to get its fields per entry
 	* ERROR_LOG_FILE: The name of the KalturaLogger export file
-	* STOP_DATE_FOR_EXPORT: Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
-	* $this->exportFileName (inside the run function): defines the file name template (without extension) that will be used to name the exported excel file.
+	* STOP_DATE_FOR_EXPORT: Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
+	* $exportFileName: This sets the name of the output excel file (without .xsl extension).
   
 When done configuring the script per the above parameters, you can run the script using PHP CLI via commandline:  
 ```php
