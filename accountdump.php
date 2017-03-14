@@ -15,14 +15,18 @@ class KalturaContentAnalytics implements IKalturaLogger
 	const ADMIN_SECRET = 'a0aaa0a0a0a0a0a0a0a0a'; //The Kaltura Account ADMIN Secret (The script must run with Admin KS)
 	const SERVICE_URL = 'http://www.kaltura.com'; //The base URL to the Kaltura server API endpoint
 	const KS_EXPIRY_TIME = 86000; //How long in seconds should the Kaltura session be? preferably this should be set to long, since this script may run for a while if the account has many entries.
+	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::DELETED, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); //defines the entry statuses to retrieve  
+	const ENTRY_TYPE_IN = array(KalturaMediaType::VIDEO, KalturaMediaType::AUDIO); //defines the entry types to retrieve 
+	const ENTRY_FIELDS = array('name', 'userId', 'msDuration', 'createdAt', 'status'); //the list of entry fields to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entryId, captions and categories will be added to this list
 	const PARENT_CATEGORIES = ''; //Any IDs of Kaltura Categories you'd like to limit the export to
 	const FILTER_TAGS = ''; //Any tags to filter by (tagsMultiLikeOr)
 	const DEBUG_PRINTS = TRUE; //Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
 	const CYCLE_SIZES = 250; //This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your server, generally 300 should be a good number.
-	const METADATA_PROFILE_ID = 0; //The profile id of the custom metadata profile to get its fields per entry
+	const METADATA_PROFILE_ID = 27431; //The profile id of the custom metadata profile to get its fields per entry
 	const ERROR_LOG_FILE = 'kaltura_logger.txt'; //The name of the KalturaLogger export file
 	//defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
-	const STOP_DATE_FOR_EXPORT = null; //'45 days ago';
+	const STOP_DATE_FOR_EXPORT = '1 days ago'; //'45 days ago';
+	
 
 	private $stopDateForCreatedAtFilter = null;
 
@@ -67,17 +71,18 @@ class KalturaContentAnalytics implements IKalturaLogger
 			$entfilter->tagsMultiLikeOr = KalturaContentAnalytics::FILTER_TAGS;
 		if (KalturaContentAnalytics::PARENT_CATEGORIES != null && KalturaContentAnalytics::PARENT_CATEGORIES != '')
 			$entfilter->categoryAncestorIdIn = KalturaContentAnalytics::PARENT_CATEGORIES;
-		$entfilter->statusEqual = KalturaEntryStatus::READY;
-		//$entfilter->statusIn = "6,-1,-2,0,5,7,4,1,2";
-		$entfilter->mediaTypeEqual = KalturaMediaType::VIDEO;
-		$entries = $this->getFullListOfKalturaObject($entfilter, $this->client->media, 'id', ['msDuration', 'name', 'userId', 'createdAt'], KalturaContentAnalytics::DEBUG_PRINTS);
+		$entfilter->statusIn = implode(',', KalturaContentAnalytics::ENTRY_STATUS_IN);
+		$entfilter->mediaTypeIn = implode(',', KalturaContentAnalytics::ENTRY_TYPE_IN);
+		$entries = $this->getFullListOfKalturaObject($entfilter, $this->client->media, 'id', KalturaContentAnalytics::ENTRY_FIELDS, KalturaContentAnalytics::DEBUG_PRINTS, true);
 		echo PHP_EOL . 'Total entries to export: ' . count($entries) . PHP_EOL;
 
 		$totalMsDuration = 0;
 		foreach ($entries as $entry) {
 			$totalMsDuration += $entry['msDuration'];
 		}
-		echo 'Total minutes in the account: ' . number_format($totalMsDuration/1000/60) . PHP_EOL;
+		echo 'Total minutes of entries exported: ' . number_format($totalMsDuration/1000/60, 2) . PHP_EOL;
+
+		echo PHP_EOL;
 
 		//get all categoryEntry objects
 		$categories = array();
@@ -90,9 +95,12 @@ class KalturaContentAnalytics implements IKalturaLogger
 			if ($entriesToCategorize != '') $entriesToCategorize .= ',';
 			$entriesToCategorize .= $eid;
 			if (($i % KalturaContentAnalytics::CYCLE_SIZES == 0) || ($i == $N-1)) {
-				if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'Categorizing: '.$i.' entries of '.$N.' total entries...'.PHP_EOL;
+				if (KalturaContentAnalytics::DEBUG_PRINTS) {
+					echo "\r\033[0K";
+					echo 'Categorizing: '.($i+1).' entries of '.$N.' total entries...';
+				}
 				$catfilter->entryIdIn = $entriesToCategorize;
-				$catents = $this->getFullListOfKalturaObject($catfilter, $this->client->categoryEntry, 'categoryId', 'entryId*', KalturaContentAnalytics::DEBUG_PRINTS);
+				$catents = $this->getFullListOfKalturaObject($catfilter, $this->client->categoryEntry, 'categoryId', 'entryId*', false);
 				foreach ($catents as $catId => $entryIds) {
 					$categories[$catId] = true;
 					foreach ($entryIds as $entryId) {
@@ -106,6 +114,8 @@ class KalturaContentAnalytics implements IKalturaLogger
 			$eid = key($entries);
 		}
 
+		echo PHP_EOL;
+
 		//get all category objects, and map category names to entry objects
 		$catfilter = new KalturaCategoryFilter();
 		$catsToName = '';
@@ -116,9 +126,12 @@ class KalturaContentAnalytics implements IKalturaLogger
 			if ($catsToName != '') $catsToName .= ',';
 			$catsToName .= $categoryId;
 			if (($i % KalturaContentAnalytics::CYCLE_SIZES == 0) || ($i == $N-1)) {
-				if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'Naming categories: '.$i.' categories of '.$N.' total categories...'.PHP_EOL;
+				if (KalturaContentAnalytics::DEBUG_PRINTS) {
+					echo "\r\033[0K";
+					echo 'Naming categories: '.($i+1).' categories of '.$N.' total categories...';
+				}
 				$catfilter->idIn = $catsToName;
-				$catnames = $this->getFullListOfKalturaObject($catfilter, $this->client->category, 'id', ['name', 'fullName'], KalturaContentAnalytics::DEBUG_PRINTS);
+				$catnames = $this->getFullListOfKalturaObject($catfilter, $this->client->category, 'id', ['name', 'fullName'], false);
 				foreach ($catnames as $catId => $catInfo) {
 					$categories[$catId] = $catInfo;
 					foreach ($entries as $entryId => $entry) {
@@ -132,6 +145,8 @@ class KalturaContentAnalytics implements IKalturaLogger
 			$categoryId = key($categories);
 		}
 
+		echo PHP_EOL;
+
 		if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'testing entry categories...'.PHP_EOL;
 		// verify categories - we shouldn't be missing any if we're starting from a parent category
 		if (KalturaContentAnalytics::PARENT_CATEGORIES != '') {
@@ -141,7 +156,9 @@ class KalturaContentAnalytics implements IKalturaLogger
 			}
 		}
 
-		if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'getting caption assets for the entries...'.PHP_EOL;
+		echo PHP_EOL;
+
+		if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'Getting caption assets for the entries...'.PHP_EOL;
 		//get captions per entries
 		$assetFilter = new KalturaAssetFilter();
 		$pager = new KalturaFilterPager();
@@ -154,7 +171,10 @@ class KalturaContentAnalytics implements IKalturaLogger
 			if ($entryIdsInCycle != '') $entryIdsInCycle .= ',';
 			$entryIdsInCycle .= $eid;
 			if (($i % KalturaContentAnalytics::CYCLE_SIZES == 0) || ($i == $N-1)) {
-				if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'Getting captions: '.$i.' entries of '.$N.' total entries...'.PHP_EOL;
+				if (KalturaContentAnalytics::DEBUG_PRINTS) {
+					echo "\r\033[0K";
+					echo 'Getting captions: '.($i+1).' entries of '.$N.' total entries...';
+				}
 				$assetFilter->entryIdIn = $entryIdsInCycle;
 				$pager->pageSize = 500;
 				$pager->pageIndex = 1;
@@ -173,7 +193,10 @@ class KalturaContentAnalytics implements IKalturaLogger
 			$eid = key($entries);
 		}
 
-		if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'getting metadata for the entries...'.PHP_EOL;
+		echo PHP_EOL;
+
+		if (KalturaContentAnalytics::DEBUG_PRINTS) 
+			echo PHP_EOL.'Getting metadata for the entries...'.PHP_EOL;
 		//get metadata per entries
 		$metadatafilter = new KalturaMetadataFilter();
 		$metadatafilter->metadataProfileIdEqual = KalturaContentAnalytics::METADATA_PROFILE_ID;
@@ -190,7 +213,10 @@ class KalturaContentAnalytics implements IKalturaLogger
 			if ($entryIdsInCycle != '') $entryIdsInCycle .= ',';
 			$entryIdsInCycle .= $eid;
 			if (($i % KalturaContentAnalytics::CYCLE_SIZES == 0) || ($i == $N-1)) {
-				if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'Getting metadata: '.$i.' entries of '.$N.' total entries...'.PHP_EOL;
+				if (KalturaContentAnalytics::DEBUG_PRINTS) {
+					echo "\r\033[0K";
+					echo 'Getting metadata: '.($i+1).' entries of '.$N.' total entries...';
+				}
 				$metadatafilter->objectIdIn = $entryIdsInCycle;
 				$pager->pageSize = 500;
 				$pager->pageIndex = 1;
@@ -212,13 +238,15 @@ class KalturaContentAnalytics implements IKalturaLogger
 			$eid = key($entries);
 		}
 
+		echo PHP_EOL;
+		echo PHP_EOL;
+
 		//create the excel file
 		$header = array();
 		$header[] = "entry_id";
-		$header[] = "name";
-		$header[] = "duration_milliseconds";
-		$header[] = "user_id";
-		$header[] = "created_at";
+		foreach (KalturaContentAnalytics::ENTRY_FIELDS as $entryField) {
+			$header[] = $entryField;
+		}
 		$header[] = "categories_ids";
 		$header[] = "categories_names";
 		$header[] = "captions";
@@ -231,10 +259,12 @@ class KalturaContentAnalytics implements IKalturaLogger
 		foreach ($entries as $entry_id => $entry) {
 			$row = array();
 			$row[] = $entry_id;
-			$row[] = $entry['name'];
-			$row[] = $entry['msDuration'];
-			$row[] = $entry['userId'];
-			$row[] = gmdate('Y-M-d, h:ia',$entry['createdAt']);
+			foreach (KalturaContentAnalytics::ENTRY_FIELDS as $entryField) {
+				if ($entryField != 'createdAt')
+					$row[] = $entry[$entryField];
+				else
+					$row[] = gmdate('Y-M-d, h:ia',$entry['createdAt']);
+			}
 			$catIds = '';
 			$catNames = '';
 			$capLangs = '';
@@ -271,10 +301,11 @@ class KalturaContentAnalytics implements IKalturaLogger
 		$xls->addArray($data);
 		$xls->generateSavedXML($this->exportFileName);
 
-		echo 'Completed run, check '.$this->exportFileName.'.xsl for the exported data'.PHP_EOL;
+		echo 'Successfully exported data!'.PHP_EOL;
+		echo 'File name: '.$this->exportFileName.'.xsl'.PHP_EOL;
 	}
 
-	public function getFullListOfKalturaObject ($filter, $listService, $idField = 'id', $valueFields = NULL, $printProgress = FALSE) {
+	public function getFullListOfKalturaObject ($filter, $listService, $idField = 'id', $valueFields = NULL, $printProgress = FALSE, $stopOnCreatedAtDate = false) {
 		$serviceName = get_class($listService);
 		$filter->orderBy = '-createdAt';
 		$filter->createdAtLessThanOrEqual = NULL;
@@ -288,6 +319,15 @@ class KalturaContentAnalytics implements IKalturaLogger
 		$count = 0;
 		$totalCount = 0;
 
+		$countAvailable = method_exists($listService, 'count');
+		if ($countAvailable) {
+			if ( $stopOnCreatedAtDate && $this->stopDateForCreatedAtFilter != null && $this->stopDateForCreatedAtFilter > -1) {
+				$filter->createdAtGreaterThanOrEqual = $this->stopDateForCreatedAtFilter;
+			}
+			$totalCount = $listService->count($filter)+1; //due to date filter grater vs. less-than there will be a 1 diff
+			$filter->createdAtGreaterThanOrEqual = KalturaClientBase::getKalturaNullValue();
+		}
+		
 		// if this filter doesn't have idNotIn - we need to find the highest totalCount
 		// this is a workaround hack due to a bug in how categoryEntry list action calculates totalCount
 		if ( ! property_exists($filter, 'idNotIn')) {
@@ -303,35 +343,37 @@ class KalturaContentAnalytics implements IKalturaLogger
 		}
 		if ($printProgress && $totalCount > 0) {
 			echo $serviceName.' Progress (total: ' . $totalCount .'):      ';
+			echo PHP_EOL;
 		}
 		while ( ! $reachedLastObject) {
 			if($lastCreatedAt != 0)
 				$filter->createdAtLessThanOrEqual = $lastCreatedAt;
+
 			if($lastObjectIds != '' && property_exists($filter, 'idNotIn'))
 				$filter->idNotIn = $lastObjectIds;
+			
 			try {
+
 				$filteredListResult = $listService->listAction($filter, $pager);
+
 			} catch (Exception $err) {
 				echo 'Message: ' .$err->getMessage().PHP_EOL;
 				echo '===========ERROR=========='.PHP_EOL;
 				echo 'Last Kaltura client headers:'.PHP_EOL;
 				print_r($this->client->getResponseHeaders());
 			}
+			
 			if ($totalCount == 0) $totalCount = $filteredListResult->totalCount;
-			if ($printProgress && $totalCount > 0) {
-				$perc = number_format(min($totalCount,($count * $pager->pageSize)) / $totalCount * 100, 2);
-				echo "\r\033[0K";
-				echo $perc.'%';
-				flush();
-			}
 
-			if ( count($filteredListResult->objects) == 0 ) {
+			$resultsCount = count($filteredListResult->objects);
+
+			if ( $resultsCount == 0 || $totalCount <= $count ) {
 				$reachedLastObject = true;
 				break;
 			}
-
+			
 			foreach ($filteredListResult->objects as $obj) {
-				if (($count * $pager->pageSize) < $totalCount) {
+				if ($count < $totalCount) {
 					if ($valueFields == NULL) {
 						$allObjects[$obj->{$idField}] = $obj;
 					} elseif (is_string($valueFields)) {
@@ -354,7 +396,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 						$lastObjectIds = '';
 					$lastCreatedAt = $obj->createdAt;
 
-					if ( $this->stopDateForCreatedAtFilter != null && $this->stopDateForCreatedAtFilter > -1 && 
+					if ( $stopOnCreatedAtDate && $this->stopDateForCreatedAtFilter != null && $this->stopDateForCreatedAtFilter > -1 && 
 						$lastCreatedAt <= $this->stopDateForCreatedAtFilter ) {
 						$reachedLastObject = true;
 						break;
@@ -368,7 +410,15 @@ class KalturaContentAnalytics implements IKalturaLogger
 				}
 			}
 
-			++$count;
+			$count += $resultsCount;
+
+			if ($printProgress && $totalCount > 0) {
+				$perc = min(100,$count / $totalCount * 100);
+				if ($perc < 100) $perc = number_format($perc, 2);
+				echo "\r\033[0K";
+				echo $perc.'%';
+				flush();
+			}
 		}
 		if ($printProgress && $totalCount > 0) {
 			echo PHP_EOL;
