@@ -25,13 +25,12 @@ class KalturaContentAnalytics implements IKalturaLogger
 	const METADATA_PROFILE_ID = 00000; //The profile id of the custom metadata profile to get its fields per entry
 	const ERROR_LOG_FILE = 'kaltura_logger.txt'; //The name of the KalturaLogger export file
 	//defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
-	const STOP_DATE_FOR_EXPORT = '1 days ago'; //e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
-	
-
-	private $stopDateForCreatedAtFilter = null;
+	const STOP_DATE_FOR_EXPORT = '1 days ago'; //Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
 
 	private $exportFileName = 'account-entries-dump'; //This sets the name of the output excel file (without .xsl extension)
-
+	
+	private $stopDateForCreatedAtFilter = null;
+	
 	private $client = null;
 	private $kConfig = null;
 
