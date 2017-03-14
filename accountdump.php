@@ -22,10 +22,10 @@ class KalturaContentAnalytics implements IKalturaLogger
 	const FILTER_TAGS = ''; //Any tags to filter by (tagsMultiLikeOr)
 	const DEBUG_PRINTS = TRUE; //Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
 	const CYCLE_SIZES = 250; //This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your server, generally 300 should be a good number.
-	const METADATA_PROFILE_ID = 27431; //The profile id of the custom metadata profile to get its fields per entry
+	const METADATA_PROFILE_ID = 00000; //The profile id of the custom metadata profile to get its fields per entry
 	const ERROR_LOG_FILE = 'kaltura_logger.txt'; //The name of the KalturaLogger export file
 	//defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
-	const STOP_DATE_FOR_EXPORT = '1 days ago'; //'45 days ago';
+	const STOP_DATE_FOR_EXPORT = '1 days ago'; //e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
 	
 
 	private $stopDateForCreatedAtFilter = null;
