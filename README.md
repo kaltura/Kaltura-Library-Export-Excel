@@ -4,13 +4,13 @@ This script loops through all entries, categories and chosen metadata profile (o
 # Configurations and running the script
 To use this script, follow these steps:
 
-1. Download the Kaltura PHP 5.3+ API Client Library and extract into the /kaltura-client directory
+1. Download the [Kaltura PHP 5.3+ API Client archive](https://developer.kaltura.com/api-docs/Client_Libraries) and extract into the /kaltura-client directory
 2. Open the accountdump.php file, and configure the following parameters:  
 	* PARTNER_ID: The Kaltura Account Partner ID
 	* PARTNER_NAME: The Name of the Account for logging (this doesn't really influence anything but logging...)
 	* ADMIN_SECRET: The Kaltura Account ADMIN Secret (The script must run with Admin KS)
 	* SERVICE_URL: The full base URL to the Kaltura server API endpoint
-	* KS_EXPIRY_TIME: How long in seconds should the Kaltura session be? preferably this should be set to long, since this script may run for a while if the account has many entries.
+	* KS_EXPIRY_TIME: How long in seconds should the Kaltura session be? Preferably this should be set to long, since this script may run for a while if the account has many entries.
 	* ENTRY_STATUS_IN: Defines the entry statuses to retrieve  
 	* ENTRY_TYPE_IN: Defines the entry types to retrieve 
 	* ENTRY_FIELDS: The list of entry fields to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entryId, captions and categories will be added to this list
@@ -24,9 +24,9 @@ To use this script, follow these steps:
 	* STOP_DATE_FOR_EXPORT: Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
 	* $exportFileName: This sets the name of the output excel file (without .xsl extension).
   
-When done configuring the script per the above parameters, you can run the script using PHP CLI via commandline:  
-```php
-php accountdump.php
+After setting the values for the above parameters in accountdump.php, run the script using PHP CLI:  
+```
+$ php accountdump.php
 ```
 
 # How you can help (guidelines for contributors) 
