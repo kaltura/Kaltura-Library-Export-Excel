@@ -51,7 +51,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 			echo 'Exporting Kaltura entries since: '.KalturaContentAnalytics::STOP_DATE_FOR_EXPORT.' (timestamp: '.$this->stopDateForCreatedAtFilter.')'.PHP_EOL;
 		}
 		
-		//This sets the name of the output excel file (without .xsl extension)
+		//This sets the name of the output excel file (without .xls extension)
 		$this->exportFileName = $this->convert_to_filename(KalturaContentAnalytics::PARTNER_NAME).'-kaltura-export'; 
 
 		$kConfig = new KalturaConfiguration(KalturaContentAnalytics::PARTNER_ID);
@@ -301,7 +301,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 		$xls->generateSavedXML($this->exportFileName);
 
 		echo 'Successfully exported data!'.PHP_EOL;
-		echo 'File name: '.$this->exportFileName.'.xsl'.PHP_EOL;
+		echo 'File name: '.$this->exportFileName.'.xls'.PHP_EOL;
 	}
 
 	public function getFullListOfKalturaObject ($filter, $listService, $idField = 'id', $valueFields = NULL, $printProgress = FALSE, $stopOnCreatedAtDate = false) {
