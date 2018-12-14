@@ -1,5 +1,5 @@
 # Kaltura Account Dump API Script
-This script loops through all entries, categories and chosen metadata profile (or filtered list of entries) in a specified Kaltura account. It then saves the entry and metadata fields (Entry per line) into an Excel (xml format) file.
+This script loops through all entries, categories and chosen metadata profile (or filtered list of entries) in a specified Kaltura account. It then saves the entry and metadata fields (Entry per line) into an Excel (XML format) file.
 
 # Configurations and running the script
 To use this script, follow these steps:
