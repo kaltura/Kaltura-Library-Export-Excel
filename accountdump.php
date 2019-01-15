@@ -23,14 +23,17 @@ class KalturaContentAnalytics implements IKalturaLogger
 	const DEBUG_PRINTS = TRUE; //Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
 	const CYCLE_SIZES = 250; //This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your server, generally 300 should be a good number.
 	const METADATA_PROFILE_ID = 00000; //The profile id of the custom metadata profile to get its fields per entry
+	const ONLY_CAPTIONED_ENTRIES = true; // Should only entries that have caption assets be included in the output?
+	const GET_CAPTION_URLS = true; // Should the excel include URLs to download caption assets?
 	const ERROR_LOG_FILE = 'kaltura_logger.txt'; //The name of the KalturaLogger export file
 	//defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
-	const STOP_DATE_FOR_EXPORT = '1 days ago'; //Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
+	const STOP_DATE_FOR_EXPORT = null;//'100 days ago'; //Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
 
-	private $exportFileName = 'account-entries-dump'; //This sets the name of the output excel file (without .xsl extension)
+	private $exportFileName = 'allentries'; //This sets the name of the output excel file (without .xsl extension)
 	
 	private $stopDateForCreatedAtFilter = null;
-	
+	private $captionLanguages = array();
+	private $ks = null;
 	private $client = null;
 	private $kConfig = null;
 
@@ -59,8 +62,8 @@ class KalturaContentAnalytics implements IKalturaLogger
 		$kConfig->setLogger($this);	
 		$this->client = new KalturaClient($kConfig);
 
-		$ks = $this->client->session->start(KalturaContentAnalytics::ADMIN_SECRET, 'video-minutes-calc', KalturaSessionType::ADMIN, KalturaContentAnalytics::PARTNER_ID, KalturaContentAnalytics::KS_EXPIRY_TIME, 'disableentitlement,list:*');
-		$this->client->setKs($ks);
+		$this->ks = $this->client->session->start(KalturaContentAnalytics::ADMIN_SECRET, 'video-minutes-calc', KalturaSessionType::ADMIN, KalturaContentAnalytics::PARTNER_ID, KalturaContentAnalytics::KS_EXPIRY_TIME, 'disableentitlement,list:*');
+		$this->client->setKs($this->ks);
 
 		echo 'for partner: ' . KalturaContentAnalytics::PARTNER_NAME . ', id: ' . KalturaContentAnalytics::PARTNER_ID . ' - ' . PHP_EOL;
 
@@ -180,8 +183,13 @@ class KalturaContentAnalytics implements IKalturaLogger
 				$entriesCaptions = $this->client->captionAsset->listAction($assetFilter, $pager);
 				while(count($entriesCaptions->objects) > 0) {
 					foreach ($entriesCaptions->objects as $capAsset) {
-						if ( ! isset($entries[$capAsset->entryId]['captions'])) $entries[$capAsset->entryId]['captions'] = array();
+						if ( ! isset($entries[$capAsset->entryId]['captions'])) 
+							$entries[$capAsset->entryId]['captions'] = array();
+						if (KalturaContentAnalytics::GET_CAPTION_URLS == true) {
+							$entries[$capAsset->entryId]['captions-url-'.$capAsset->language] = KalturaContentAnalytics::SERVICE_URL . '/api_v3/service/caption_captionasset/action/serve/captionAssetId/' . $capAsset->id . '/ks/' . $this->ks;
+						}
 						$entries[$capAsset->entryId]['captions'][] = $capAsset->language;
+						$this->captionLanguages[$capAsset->language] = true;
 					}
 					++$pager->pageIndex;
 					$entriesCaptions = $this->client->captionAsset->listAction($assetFilter, $pager);
@@ -248,7 +256,12 @@ class KalturaContentAnalytics implements IKalturaLogger
 		}
 		$header[] = "categories_ids";
 		$header[] = "categories_names";
-		$header[] = "captions";
+		$header[] = "captions-languages";
+		if (KalturaContentAnalytics::GET_CAPTION_URLS == true) {
+			foreach ($this->captionLanguages as $language => $exists) {
+				$header[] = 'caption-url-'.$language;
+			}
+		}
 		$metadataTemplate = $this->getMetadataTemplate (KalturaContentAnalytics::METADATA_PROFILE_ID, $metadataPlugin);
 		foreach ($metadataTemplate->children() as $metadataField) {
 			$header[] = "metadata_".$metadataField->getName();
@@ -266,7 +279,6 @@ class KalturaContentAnalytics implements IKalturaLogger
 			}
 			$catIds = '';
 			$catNames = '';
-			$capLangs = '';
 			if (isset($entry['categories'])) {
 				foreach ($entry['categories'] as $catId => $catName) {
 					if ($catIds != '') $catIds .= ',';
@@ -275,15 +287,28 @@ class KalturaContentAnalytics implements IKalturaLogger
 					$catNames .= $catName['name'];
 				}
 			}
+			$row[] = $catIds;
+			$row[] = $catNames;
+
+			$capLangs = '';
 			if (isset($entry['captions'])) {
 				foreach ($entry['captions'] as $captionLanguage) {
 					if ($capLangs != '') $capLangs .= ',';
 					$capLangs .= $captionLanguage;
 				}
 			}
-			$row[] = $catIds;
-			$row[] = $catNames;
 			$row[] = $capLangs;
+			
+			if (KalturaContentAnalytics::GET_CAPTION_URLS == true) {
+				foreach ($this->captionLanguages as $language => $exists) {
+					$captionUrl = '';
+					if (isset($entry['captions-url-'.$language])) {
+						$captionUrl = $entry['captions-url-'.$language];
+					}
+					$row[] = $captionUrl;
+				}
+			}
+			
 			if (isset($entry['metadata'])) {
 				foreach ($metadataTemplate->children() as $mdfield) {
 					if (isset($entry['metadata'][$mdfield->getName()])) {
@@ -293,7 +318,8 @@ class KalturaContentAnalytics implements IKalturaLogger
 					}
 				}
 			}
-			array_push($data,$row);
+			if (KalturaContentAnalytics::ONLY_CAPTIONED_ENTRIES == false || (KalturaContentAnalytics::ONLY_CAPTIONED_ENTRIES == true && $capLangs != ''))
+				array_push($data,$row);
 		}
 
 		$xls = new Excel_XML('UTF-8', false, 'Kaltura Entries');
