@@ -20,6 +20,8 @@ To use this script, follow these steps:
 	* CYCLE_SIZES: This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your serve
 	r, generally 300 should be a good number.
 	* METADATA_PROFILE_ID: The profile id of the custom metadata profile to get its fields per entry
+	* ONLY_CAPTIONED_ENTRIES: Should only entries that have caption assets be included in the output?
+	* GET_CAPTION_URLS: Should the excel include URLs to download caption assets?
 	* ERROR_LOG_FILE: The name of the KalturaLogger export file
 	* STOP_DATE_FOR_EXPORT: Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
 	* $exportFileName: This sets the name of the output excel file (without .xsl extension).
