@@ -17,19 +17,19 @@ class KalturaContentAnalytics implements IKalturaLogger
 	const KS_EXPIRY_TIME = 86000; //How long in seconds should the Kaltura session be? preferably this should be set to long, since this script may run for a while if the account has many entries.
 	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::DELETED, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); //defines the entry statuses to retrieve  
 	const ENTRY_TYPE_IN = array(KalturaMediaType::VIDEO, KalturaMediaType::AUDIO); //defines the entry types to retrieve 
-	const ENTRY_FIELDS = array('name', 'userId', 'msDuration', 'createdAt', 'status'); //the list of entry fields to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entryId, captions and categories will be added to this list
+	const ENTRY_FIELDS = array('name', 'userId', 'msDuration', 'createdAt', 'updatedAt', 'lastPlayedAt', 'status', 'views', 'plays'); //the list of entry fields to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entryId, captions and categories will be added to this list
 	const PARENT_CATEGORIES = ''; //Any IDs of Kaltura Categories you'd like to limit the export to
 	const FILTER_TAGS = ''; //Any tags to filter by (tagsMultiLikeOr)
 	const DEBUG_PRINTS = TRUE; //Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
 	const CYCLE_SIZES = 250; //This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your server, generally 300 should be a good number.
 	const METADATA_PROFILE_ID = 00000; //The profile id of the custom metadata profile to get its fields per entry
-	const ONLY_CAPTIONED_ENTRIES = true; // Should only entries that have caption assets be included in the output?
+	const ONLY_CAPTIONED_ENTRIES = false; // Should only entries that have caption assets be included in the output?
 	const GET_CAPTION_URLS = true; // Should the excel include URLs to download caption assets?
 	const ERROR_LOG_FILE = 'kaltura_logger.txt'; //The name of the KalturaLogger export file
 	//defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
 	const STOP_DATE_FOR_EXPORT = null;//'100 days ago'; //Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
 
-	private $exportFileName = 'allentries'; //This sets the name of the output excel file (without .xsl extension)
+	private $exportFileName = 'account-entries-dump'; //This sets the name of the output excel file (without .xsl extension)
 	
 	private $stopDateForCreatedAtFilter = null;
 	private $captionLanguages = array();
@@ -272,10 +272,20 @@ class KalturaContentAnalytics implements IKalturaLogger
 			$row = array();
 			$row[] = $entry_id;
 			foreach (KalturaContentAnalytics::ENTRY_FIELDS as $entryField) {
-				if ($entryField != 'createdAt')
-					$row[] = $entry[$entryField];
-				else
-					$row[] = gmdate('Y-M-d, h:ia',$entry['createdAt']);
+			    if ($entryField == 'lastPlayedAt'){
+				// special handling is required here since, unlike 'createdAt' and 'updatedAt', this
+				// value can be empty if no plays occurred.
+				if (empty($entry['views']) || !isset($entry['views'])){
+				    $entry['lastPlayedAt']='N/A';
+				    $row[] = $entry[$entryField];
+				}else{
+				    $row[] = gmdate('Y-M-d, h:ia',$entry['lastPlayedAt']);
+				}
+			    }elseif (in_array($entryField, array('createdAt','updatedAt'))){
+				$row[] = gmdate('Y-M-d, h:ia',$entry[$entryField]);
+			    }else{
+				$row[] = $entry[$entryField];
+			    }
 			}
 			$catIds = '';
 			$catNames = '';
