@@ -1,1 +1,0 @@
-Here you'll find the log form the Kaltura Client library, in case issues occur you can use this file to investigate and report errors.

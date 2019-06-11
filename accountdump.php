@@ -5,29 +5,29 @@ error_reporting(E_ALL | E_STRICT);
 ini_set('display_errors', 1);
 date_default_timezone_set('America/New_York'); //make sure to set the expected timezone
 
-require_once(dirname (__FILE__) . '/kaltura-client/KalturaClient.php');
+require_once('/opt/kaltura/apps/clientlibs/php5/KalturaClient.php');
 require_once(dirname (__FILE__) . '/php-excel/php-excel.class.php');
 
 class KalturaContentAnalytics implements IKalturaLogger 
 {
 	const PARTNER_ID = 000000;  //The Kaltura Account Partner ID
-	const PARTNER_NAME = 'Account Name'; //The Name of the Account for logging and exported filename
-	const ADMIN_SECRET = 'a0aaa0a0a0a0a0a0a0a0a'; //The Kaltura Account ADMIN Secret (The script must run with Admin KS)
-	const SERVICE_URL = 'http://www.kaltura.com'; //The base URL to the Kaltura server API endpoint
-	const KS_EXPIRY_TIME = 86000; //How long in seconds should the Kaltura session be? preferably this should be set to long, since this script may run for a while if the account has many entries.
-	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::DELETED, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); //defines the entry statuses to retrieve  
+	const PARTNER_NAME = 'Partner Name'; //The Name of the Account for logging and exported filename
+	const ADMIN_SECRET = ''; // The Kaltura Account ADMIN Secret (The script must run with Admin KS)
+	const SERVICE_URL = 'https://www.kaltura.com'; //The base URL to the Kaltura server API endpoint
+	const KS_EXPIRY_TIME = 86000; // Kaltura session length. Please note the script may run for a while so it mustn't be too short.
+	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); //defines the entry statuses to retrieve. Add KalturaEntryStatus::DELETED to include deleted entries. 
 	const ENTRY_TYPE_IN = array(KalturaMediaType::VIDEO, KalturaMediaType::AUDIO); //defines the entry types to retrieve 
-	const ENTRY_FIELDS = array('name', 'userId', 'msDuration', 'createdAt', 'updatedAt', 'lastPlayedAt', 'status', 'views', 'plays'); //the list of entry fields to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entryId, captions and categories will be added to this list
-	const PARENT_CATEGORIES = ''; //Any IDs of Kaltura Categories you'd like to limit the export to
-	const FILTER_TAGS = ''; //Any tags to filter by (tagsMultiLikeOr)
+	const ENTRY_FIELDS = array('name', 'userId', 'msDuration', 'createdAt', 'updatedAt', 'lastPlayedAt', 'status', 'views', 'plays', 'tags'); //the list of entry fields to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entryId, captions and categories will be added to this list
+	const PARENT_CATEGORIES = '00000'; // The IDs of the Kaltura Categories you'd like to export, set to `null` to export all.
+	const FILTER_TAGS = ''; // Tags to filter by (tagsMultiLikeOr)
 	const DEBUG_PRINTS = TRUE; //Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
-	const CYCLE_SIZES = 250; //This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your server, generally 300 should be a good number.
-	const METADATA_PROFILE_ID = 00000; //The profile id of the custom metadata profile to get its fields per entry
+	const CYCLE_SIZES = 250; // Determines how many entries will be processed in each multi-request call - set it to whatever number works best for your server.
+	const METADATA_PROFILE_ID = 00000; // The profile id of the custom metadata profile to get its fields per entry
 	const ONLY_CAPTIONED_ENTRIES = false; // Should only entries that have caption assets be included in the output?
-	const GET_CAPTION_URLS = true; // Should the excel include URLs to download caption assets?
+	const GET_CAPTION_URLS = false; // Should the excel include URLs to download caption assets?
 	const ERROR_LOG_FILE = 'kaltura_logger.txt'; //The name of the KalturaLogger export file
-	//defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
-	const STOP_DATE_FOR_EXPORT = null;//'100 days ago'; //Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
+	// Defines a stop date for the entries iteration loop. Any time string supported by strtotime() can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
+	const STOP_DATE_FOR_EXPORT = null;//'100 days ago'; //Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime()
 
 	private $exportFileName = 'account-entries-dump'; //This sets the name of the output excel file (without .xsl extension)
 	
@@ -82,9 +82,8 @@ class KalturaContentAnalytics implements IKalturaLogger
 		foreach ($entries as $entry) {
 			$totalMsDuration += $entry['msDuration'];
 		}
-		echo 'Total minutes of entries exported: ' . number_format($totalMsDuration/1000/60, 2) . PHP_EOL;
+		echo 'Total minutes of entries exported: ' . number_format($totalMsDuration/1000/60, 2) . PHP_EOL.PHP_EOL;
 
-		echo PHP_EOL;
 
 		//get all categoryEntry objects
 		$categories = array();
@@ -154,7 +153,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 		if (KalturaContentAnalytics::PARENT_CATEGORIES != '') {
 			foreach ($entries as $eid => $ent) {
 				if( ! isset($ent['categories']))
-					die('Something broke, check entryId: '.$eid.PHP_EOL);
+				    echo('Something broke, check entryId: '.$eid.PHP_EOL);
 			}
 		}
 
