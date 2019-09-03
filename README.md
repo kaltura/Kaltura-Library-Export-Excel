@@ -1,32 +1,31 @@
 # Kaltura Account Dump API Script
-This script loops through all entries, categories and chosen metadata profile (or filtered list of entries) in a specified Kaltura account. It then saves the entry and metadata fields (Entry per line) into an Excel (XML format) file.
+This script loops through all entries, categories and chosen metadata profiles (or a filtered list of entries) of a given Kaltura account (partner). It then stores the entry's metadata fields (one Entry per row) in an Excel (XML format) file.
 
-# Configurations and running the script
-To use this script, follow these steps:
+# Configuration
+Before running the script, follow these steps:
 
 1. Download the [Kaltura PHP 5.3+ API Client archive](https://developer.kaltura.com/api-docs/Client_Libraries) and extract into the /kaltura-client directory
-2. Open the accountdump.php file, and configure the following parameters:  
-	* PARTNER_ID: The Kaltura Account Partner ID
-	* PARTNER_NAME: The Name of the Account for logging (this doesn't really influence anything but logging...)
-	* ADMIN_SECRET: The Kaltura Account ADMIN Secret (The script must run with Admin KS)
-	* SERVICE_URL: The full base URL to the Kaltura server API endpoint
-	* KS_EXPIRY_TIME: How long in seconds should the Kaltura session be? Preferably this should be set to long, since this script may run for a while if the account has many entries.
-	* ENTRY_STATUS_IN: Defines the entry statuses to retrieve  
-	* ENTRY_TYPE_IN: Defines the entry types to retrieve 
-	* ENTRY_FIELDS: The list of entry fields to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entryId, captions and categories will be added to this list
-	* PARENT_CATEGORIES: Any IDs of Kaltura Categories you'd like to limit the export to
-	* FILTER_TAGS: Any tags to filter by (tagsMultiLikeOr)
-	* DEBUG_PRINTS: Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
-	* CYCLE_SIZES: This decides how many entries will be processed in each multi-request call - set it to whatever number works best for your serve
-	r, generally 300 should be a good number.
-	* METADATA_PROFILE_ID: The profile id of the custom metadata profile to get its fields per entry
-	* ONLY_CAPTIONED_ENTRIES: Should only entries that have caption assets be included in the output?
-	* GET_CAPTION_URLS: Should the excel include URLs to download caption assets?
-	* ERROR_LOG_FILE: The name of the KalturaLogger export file
-	* STOP_DATE_FOR_EXPORT: Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime
-	* $exportFileName: This sets the name of the output excel file (without .xsl extension).
+2. Edit `accountdump.php` and set the following parameters:  
+	* `PARTNER_ID`: the Kaltura partner ID
+	* `PARTNER_NAME`: the account name (this doesn't really affect anything but the logging and filename)
+	* `ADMIN_SECRET`: the partner's ADMIN secret 
+	* `SERVICE_URL`: the full base URL to the Kaltura API endpoint (https://www.kaltura.com when using SaaS)
+	* `KS_EXPIRY_TIME`: Session duration; since the execution time will vary based on the number of records, be sure to set the duration accordingly.
+	* `ENTRY_STATUS_IN`: defines the entry statuses to retrieve  
+	* `ENTRY_TYPE_IN`: defines the entry types to retrieve 
+	* `ENTRY_FIELDS`: list of entry fields to export (excluding custom metadata, that is set in `METADATA_PROFILE_ID`), `entryId`, captions and categories will be added to this list
+	* `PARENT_CATEGORIES`: optional; IDs of Kaltura Categories you'd like to limit the export to
+	* `FILTER_TAGS`: tags to filter by (`tagsMultiLikeOr`)
+	* `DEBUG_PRINTS`: set to true if you'd like the script to output logging to the console (this is different from the `KalturaLogger`)
+	* `CYCLE_SIZES`: determines how many entries will be processed in each multi-request call
+	* `METADATA_PROFILE_ID`: the profile id of the custom metadata profile to get its fields per entry
+	* `ONLY_CAPTIONED_ENTRIES`: when set to `true` only entries with caption assets be included in the output
+	* `GET_CAPTION_URLS`: when set to `true`, caption download URLs will be included
+	* `ERROR_LOG_FILE`: the name of the `KalturaLogger` export file
+	* `STOP_DATE_FOR_EXPORT`: defines a stop date for the entries iteration loop. Any time string supported by `strtotime` can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. 
+	* `$exportFileName`: sets the name of the output excel file (do not include the file extension).
   
-After setting the values for the above parameters in accountdump.php, run the script using PHP CLI:  
+After setting the values for the above parameters, run the script using PHP CLI:  
 ```
 $ php accountdump.php
 ```
