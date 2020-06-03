@@ -230,11 +230,18 @@ class KalturaContentAnalytics implements IKalturaLogger
 				$entriesMetadata = $metadataPlugin->metadata->listAction($metadatafilter, $pager);
 				while(count($entriesMetadata->objects) > 0) {
 					foreach ($entriesMetadata->objects as $metadataInstance) {
-						if ( ! isset($entries[$metadataInstance->objectId]['metadata'])) $entries[$metadataInstance->objectId]['metadata'] = array();
-						$metadataXml = simplexml_load_string($metadataInstance->xml);
-						foreach ($metadataXml->children() as $metadataField) {
-							$entries[$metadataInstance->objectId]['metadata'][$metadataField->getName()] = (string)$metadataField;
+					    if ( ! isset($entries[$metadataInstance->objectId]['metadata'])) {
+						$entries[$metadataInstance->objectId]['metadata'] = array();
+					    }
+					    $metadataXml = simplexml_load_string($metadataInstance->xml);
+					    foreach ($metadataXml->children() as $metadataField) {
+						// handle multi choice fields
+						if (isset($entries[$metadataInstance->objectId]['metadata'][$metadataField->getName()])){
+						    $entries[$metadataInstance->objectId]['metadata'][$metadataField->getName()] .= ' + '.(string)$metadataField ;
+						}else{
+						    $entries[$metadataInstance->objectId]['metadata'][$metadataField->getName()] = (string)$metadataField;
 						}
+					    }
 					}
 					++$pager->pageIndex;
 					$entriesMetadata = $metadataPlugin->metadata->listAction($metadatafilter, $pager);
@@ -477,25 +484,27 @@ class KalturaContentAnalytics implements IKalturaLogger
 
 		//Build a <metadata> template:
 		$schema = new DOMDocument();
-		$schema->loadXML($schemaXSDFile); //load and parse the XSD as an XML
+		$schema->loadXML(str_replace('&', '&amp;', $schemaXSDFile)); //load and parse the XSD as an XML
 		$fieldsList = $schema->getElementsByTagName('element'); //get all elements of the XSD
 		$metadataTemplate = '<metadata>'; //Kaltura metadata XML is always wrapped in <metadata>
 		foreach ($fieldsList as $element) {
-	    if ($element->hasAttribute('name') === false) continue; //valid fields will always have name
-	    $key = $element->getAttribute('name'); //systemName is the element's name, not key nor id
-	    if ($key != 'metadata') { //exclude the parent node ‘metadata' as we're manually creating it
-	        if ($element->getAttribute('type') != 'textType') {
-	            $options = $element->getElementsByTagName('enumeration');
-							if ($options != null && ($options->length > 0)) {
-								$defaultOption = $options->item(0)->nodeValue;
-								$metadataTemplate .= '<' . $key . '>' . $defaultOption . '</' . $key . '>';
-							} else {
-								$metadataTemplate .= '<' . $key . '>' . '</' . $key . '>';
-							}
-	        } else {
-	            $metadataTemplate .= '<' . $key . '>' . '</' . $key . '>';
-	        }
-	    }
+		    if ($element->hasAttribute('name') === false) {
+			continue; //valid fields will always have name
+		    }
+		    $key = $element->getAttribute('name'); //systemName is the element's name, not key nor id
+		    if ($key != 'metadata') { //exclude the parent node ‘metadata' as we're manually creating it
+			if ($element->getAttribute('type') != 'textType') {
+			    $options = $element->getElementsByTagName('enumeration');
+				    if ($options != null && ($options->length > 0)) {
+					    $defaultOption = $options->item(0)->nodeValue;
+					    $metadataTemplate .= '<' . $key . '>' . $defaultOption . '</' . $key . '>';
+				    } else {
+					    $metadataTemplate .= '<' . $key . '>' . '</' . $key . '>';
+				    }
+			} else {
+			    $metadataTemplate .= '<' . $key . '>' . '</' . $key . '>';
+			}
+		    }
 		}
 		$metadataTemplate .= '</metadata>';
 		$metadataXmlTemplate = simplexml_load_string($metadataTemplate);
