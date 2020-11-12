@@ -1,5 +1,7 @@
 # Kaltura Account Dump API Script
-This script loops through all entries, categories and chosen metadata profiles (or a filtered list of entries) of a given Kaltura account (partner). It then stores the entry's metadata fields (one Entry per row) in an Excel (XML format) file.
+See the more recently updaed and maintained repository at [kaltura-vpaas/kaltura-accounts-entries-export](https://github.com/kaltura-vpaas/kaltura-accounts-entries-export).  
+
+
 
 # Configuration
 Before running the script, follow these steps:
