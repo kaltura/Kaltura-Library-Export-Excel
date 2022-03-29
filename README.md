@@ -1,6 +1,4 @@
 # Kaltura Account Dump API Script
-See the more recently updaed and maintained repository at [kaltura-vpaas/kaltura-accounts-entries-export](https://github.com/kaltura-vpaas/kaltura-accounts-entries-export).  
-
 
 
 # Configuration
