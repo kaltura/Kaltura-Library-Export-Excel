@@ -6,29 +6,38 @@ ini_set('display_errors', 1);
 date_default_timezone_set('America/New_York'); //make sure to set the expected timezone
 
 // download the PHP5.3+ client from https://developer.kaltura.com/api-docs/Client_Libraries
-require_once(dirname (__FILE__) . '/kaltura-client/KalturaClient.php');
+require_once('/home/jesse/tmp/KalturaGeneratedAPIClientsPHP-18.15.0/KalturaClient.php');
 require_once(dirname (__FILE__) . '/php-excel/php-excel.class.php');
 
 class KalturaContentAnalytics implements IKalturaLogger 
 {
 	const PARTNER_ID = 000000;  //The Kaltura Account Partner ID
-	const PARTNER_NAME = 'Partner Name'; //The Name of the Account for logging and exported filename
-	const ADMIN_SECRET = ''; // The Kaltura Account ADMIN Secret (The script must run with Admin KS)
-	const SERVICE_URL = 'https://www.kaltura.com'; //The base URL to the Kaltura server API endpoint
-	const KS_EXPIRY_TIME = 86000; // Kaltura session length. Please note the script may run for a while so it mustn't be too short.
-	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); //defines the entry statuses to retrieve. Add KalturaEntryStatus::DELETED to include deleted entries. 
+	const PARTNER_NAME = 'PARTNER NAME'; //The Name of the Account for logging and exported filename
+	const ADMIN_SECRET = 'ADMIN SECRET'; // The Kaltura Account ADMIN Secret (The script must run with Admin KS)
+	// The Kaltura server API endpoint
+	const SERVICE_URL = 'https://www.kaltura.com'; 
+	// Kaltura session length. Please note the script may run for a while so it mustn't be too short.
+	const KS_EXPIRY_TIME = 86000; 
+	// defines the entry statuses to retrieve. Add KalturaEntryStatus::DELETED to include deleted entries. 
+	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); 
 	const ENTRY_TYPE_IN = array(KalturaMediaType::VIDEO, KalturaMediaType::AUDIO); //defines the entry types to retrieve 
-	const ENTRY_FIELDS = array('name', 'userId', 'msDuration', 'createdAt', 'updatedAt', 'lastPlayedAt', 'status', 'views', 'plays', 'tags'); //the list of entry fields to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entryId, captions and categories will be added to this list
-	const PARENT_CATEGORIES = '00000'; // The IDs of the Kaltura Categories you'd like to export, set to `null` to export all.
-	const FILTER_TAGS = ''; // Tags to filter by (tagsMultiLikeOr)
-	const DEBUG_PRINTS = TRUE; //Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
-	const CYCLE_SIZES = 250; // Determines how many entries will be processed in each multi-request call - set it to whatever number works best for your server.
-	const METADATA_PROFILE_ID = 00000; // The profile id of the custom metadata profile to get its fields per entry
+	 // the entry object members to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entry ID, captions and categories will be added to the below
+	const ENTRY_FIELDS = array('name', 'userId', 'msDuration', 'createdAt', 'updatedAt', 'lastPlayedAt', 'status', 'views', 'plays', 'tags', 'adminTags');
+	// The IDs of the Kaltura Categories you'd like to export, set to `null` to export all.
+	const PARENT_CATEGORIES = null;
+	 // Tags to filter by (tagsMultiLikeOr)
+	const FILTER_TAGS = null; 
+	 // Determines how many entries will be processed in each multi-request call - set it to whatever number works best for your server.
+	const CYCLE_SIZES = 500;
+	const METADATA_PROFILE_ID = null; // The profile id of the custom metadata profile to get its fields per entry
 	const ONLY_CAPTIONED_ENTRIES = false; // Should only entries that have caption assets be included in the output?
 	const GET_CAPTION_URLS = false; // Should the excel include URLs to download caption assets?
 	const ERROR_LOG_FILE = 'kaltura_logger.txt'; //The name of the KalturaLogger export file
-	// Defines a stop date for the entries iteration loop. Any time string supported by strtotime() can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry.
-	const STOP_DATE_FOR_EXPORT = null;//'100 days ago'; //Defines a stop date for the entries iteration loop. Any time string supported by strtotime can be passed. If this is set to null or -1, it will be ignored and the script will run through the entire library until it reaches the first created entry. e.g. '45 days ago' or '01/01/2017', etc. formats supported by strtotime()
+	//Set to true if you'd like the script to output logging to the console (this is different from the KalturaLogger)
+	const DEBUG_PRINTS = true;
+
+	// Defines a stop time for the iteration loop. Any input supported by `strtotime` can be passed  e.g. '45 days ago' or '01/01/2017', etc. . If set to null or -1, it will be ignored and the script will iterate over all entries matching the other criteria.
+	const STOP_DATE_FOR_EXPORT = null;
 
 	private $exportFileName = 'account-entries-dump'; //This sets the name of the output excel file (without .xsl extension)
 	
@@ -55,7 +64,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 			echo 'Exporting Kaltura entries since: '.KalturaContentAnalytics::STOP_DATE_FOR_EXPORT.' (timestamp: '.$this->stopDateForCreatedAtFilter.')'.PHP_EOL;
 		}
 		
-		//This sets the name of the output excel file (without .xls extension)
+		//This sets the name of the output excel file (without .XLS extension)
 		$this->exportFileName = $this->convert_to_filename(KalturaContentAnalytics::PARTNER_NAME).'-kaltura-export'; 
 
 		$kConfig = new KalturaConfiguration(KalturaContentAnalytics::PARTNER_ID);
@@ -66,7 +75,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 		$this->ks = $this->client->session->start(KalturaContentAnalytics::ADMIN_SECRET, 'video-minutes-calc', KalturaSessionType::ADMIN, KalturaContentAnalytics::PARTNER_ID, KalturaContentAnalytics::KS_EXPIRY_TIME, 'disableentitlement,list:*');
 		$this->client->setKs($this->ks);
 
-		echo 'for partner: ' . KalturaContentAnalytics::PARTNER_NAME . ', id: ' . KalturaContentAnalytics::PARTNER_ID . ' - ' . PHP_EOL;
+		echo 'Generating report for partner: ' . KalturaContentAnalytics::PARTNER_NAME . ', ID: ' . KalturaContentAnalytics::PARTNER_ID . ' - ' . PHP_EOL;
 
 		//get all entry objects
 		$entfilter = new KalturaMediaEntryFilter();
@@ -99,7 +108,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 			if (($i % KalturaContentAnalytics::CYCLE_SIZES == 0) || ($i == $N-1)) {
 				if (KalturaContentAnalytics::DEBUG_PRINTS) {
 					echo "\r\033[0K";
-					echo 'Categorizing: '.($i+1).' entries of '.$N.' total entries...';
+					echo 'Categorising: '.($i+1).' entries of '.$N.' total entries...';
 				}
 				$catfilter->entryIdIn = $entriesToCategorize;
 				$catents = $this->getFullListOfKalturaObject($catfilter, $this->client->categoryEntry, 'categoryId', 'entryId*', false);
@@ -130,7 +139,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 			if (($i % KalturaContentAnalytics::CYCLE_SIZES == 0) || ($i == $N-1)) {
 				if (KalturaContentAnalytics::DEBUG_PRINTS) {
 					echo "\r\033[0K";
-					echo 'Naming categories: '.($i+1).' categories of '.$N.' total categories...';
+					echo 'Mapping category names: '.($i+1).' categories of '.$N.' total categories...';
 				}
 				$catfilter->idIn = $catsToName;
 				$catnames = $this->getFullListOfKalturaObject($catfilter, $this->client->category, 'id', ['name', 'fullName'], false);
@@ -157,7 +166,51 @@ class KalturaContentAnalytics implements IKalturaLogger
 				    echo('Something broke, check entryId: '.$eid.PHP_EOL);
 			}
 		}
+//
+		echo PHP_EOL;
 
+		if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'Calculating flavour asset storage size for entries...'.PHP_EOL;
+		//get flavours per entry
+		$fassetFilter = new KalturaFlavorAssetFilter();
+		$pager = new KalturaFilterPager();
+		$N = count($entries);
+		reset($entries);
+		$eid = key($entries);
+		$entryIdsInCycle = '';
+		$entryFlavourAssets = null;
+		for ($i = 0; $i < $N ; $i++) {
+			if ($entryIdsInCycle != '') $entryIdsInCycle .= ',';
+			$entryIdsInCycle .= $eid;
+			if (($i % KalturaContentAnalytics::CYCLE_SIZES == 0) || ($i == $N-1)) {
+				if (KalturaContentAnalytics::DEBUG_PRINTS) {
+					echo "\r\033[0K";
+					echo 'Getting flavour assets: '.($i+1).' entries of '.$N.' total entries...';
+				}
+				$fassetFilter->entryIdIn = $entryIdsInCycle;
+				$fassetFilter->statusEqual = KalturaFlavorAssetStatus::READY;
+				$pager->pageSize = 500;
+				$pager->pageIndex = 1;
+				$entryFlavourAssets = $this->client->flavorAsset->listAction($fassetFilter, $pager);
+				while(count($entryFlavourAssets->objects) > 0) {
+					foreach ($entryFlavourAssets->objects as $flavour) {
+					    if ((!empty($flavour->tags) && strstr('source', $flavour->tags)) || $flavour->flavorParamsId == 0 || $flavour->isOriginal == true){
+						$entries[$flavour->entryId]['Source Size']=$flavour->size;
+					    }
+					    if (!isset($entries[$flavour->entryId]['Total Storage Size'])){
+						$entries[$flavour->entryId]['Total Storage Size'] = 0;
+					    }
+					    $entries[$flavour->entryId]['Total Storage Size']+=$flavour->size;
+					}
+					++$pager->pageIndex;
+					$entryFlavourAssets = $this->client->flavorAsset->listAction($fassetFilter, $pager);
+				}
+				$entryIdsInCycle = '';
+			}
+			next($entries);
+			$eid = key($entries);
+		}
+
+//
 		echo PHP_EOL;
 
 		if (KalturaContentAnalytics::DEBUG_PRINTS) echo 'Getting caption assets for the entries...'.PHP_EOL;
@@ -253,17 +306,17 @@ class KalturaContentAnalytics implements IKalturaLogger
 		}
 
 		echo PHP_EOL;
-		echo PHP_EOL;
 
 		//create the excel file
 		$header = array();
-		$header[] = "entry_id";
+		$header[] = "Entry ID";
 		foreach (KalturaContentAnalytics::ENTRY_FIELDS as $entryField) {
-			$header[] = $entryField;
+		    $words = preg_split('/(?=[A-Z])/',$entryField);
+		    $header[] = ucfirst(implode(' ', $words));
 		}
-		$header[] = "categories_ids";
-		$header[] = "categories_names";
-		$header[] = "captions-languages";
+		$header[] = "Category IDs";
+		$header[] = "Category Names";
+		$header[] = "Caption Languages";
 		if (KalturaContentAnalytics::GET_CAPTION_URLS == true) {
 			foreach ($this->captionLanguages as $language => $exists) {
 				$header[] = 'caption-url-'.$language;
@@ -271,8 +324,10 @@ class KalturaContentAnalytics implements IKalturaLogger
 		}
 		$metadataTemplate = $this->getMetadataTemplate (KalturaContentAnalytics::METADATA_PROFILE_ID, $metadataPlugin);
 		foreach ($metadataTemplate->children() as $metadataField) {
-			$header[] = "metadata_".$metadataField->getName();
+			$header[] = "Custom Metadata ".$metadataField->getName();
 		}
+		$header[] = "Source Size (KB)";
+		$header[] = "Total Storage Size (KB)";
 		$data = array(1 => $header);
 
 		foreach ($entries as $entry_id => $entry) {
@@ -288,6 +343,10 @@ class KalturaContentAnalytics implements IKalturaLogger
 				}else{
 				    $row[] = gmdate('Y-M-d, h:ia',$entry['lastPlayedAt']);
 				}
+			    }elseif ($entryField == 'status'){
+				$refl = new ReflectionClass('KalturaEntryStatus');
+				$statuses = $refl->getConstants();
+				$row[] = array_search($entry[$entryField], $statuses);
 			    }elseif (in_array($entryField, array('createdAt','updatedAt'))){
 				$row[] = gmdate('Y-M-d, h:ia',$entry[$entryField]);
 			    }else{
@@ -301,7 +360,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 					if ($catIds != '') $catIds .= ',';
 					$catIds .= $catId;
 					if ($catNames != '') $catNames .= ',';
-					$catNames .= $catName['name'];
+					$catNames .= $catName['fullName'];
 				}
 			}
 			$row[] = $catIds;
@@ -335,6 +394,15 @@ class KalturaContentAnalytics implements IKalturaLogger
 					}
 				}
 			}
+			
+			if (isset($entry['Source Size'])) {
+			    $row[] = $entry['Source Size'];
+			}
+
+			if (isset($entry['Total Storage Size'])) {
+			    $row[] = $entry['Total Storage Size'];
+			}
+
 			if (KalturaContentAnalytics::ONLY_CAPTIONED_ENTRIES == false || (KalturaContentAnalytics::ONLY_CAPTIONED_ENTRIES == true && $capLangs != ''))
 				array_push($data,$row);
 		}
@@ -526,7 +594,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 	  // Match any character that is not in our whitelist
 	  preg_match_all ("/[^0-9^a-z^_^.]/", $string, $matches);
 
-	  // Loop through the matches with foreach
+	  // Loop through the matches
 	  foreach ($matches[0] as $value) {
 	    $string = str_replace($value, "", $string);
 	  }
