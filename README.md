@@ -1,4 +1,4 @@
-# Kaltura Account Dump API Script
+# Kaltura media data export
 
 
 # Configuration
