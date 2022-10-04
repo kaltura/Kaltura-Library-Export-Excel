@@ -129,7 +129,7 @@ class Excel_XML
                         if ($this->bConvertTypes === true && is_numeric($v)):
                                 $type = 'Number';
                         endif;
-                        $v = htmlentities($v, ENT_COMPAT, $this->sEncoding);
+                        $v = htmlentities($v ?? '', ENT_COMPAT, $this->sEncoding);
                         $cells .= "<Cell><Data ss:Type=\"$type\">" . $v . "</Data></Cell>\n"; 
                 endforeach;
                 $this->lines[] = "<Row>\n" . $cells . "</Row>\n";
