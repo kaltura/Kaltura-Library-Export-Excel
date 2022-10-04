@@ -6,7 +6,7 @@ ini_set('display_errors', 1);
 date_default_timezone_set('America/New_York'); //make sure to set the expected timezone
 
 // download the PHP5.3+ client from https://developer.kaltura.com/api-docs/Client_Libraries
-require_once('/home/jesse/tmp/KalturaGeneratedAPIClientsPHP-18.15.0/KalturaClient.php');
+require_once(dirname (__FILE__) . '/kaltura-client/KalturaClient.php');
 require_once(dirname (__FILE__) . '/php-excel/php-excel.class.php');
 
 class KalturaContentAnalytics implements IKalturaLogger 
