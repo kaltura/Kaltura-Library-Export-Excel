@@ -1,4 +1,4 @@
-# Kaltura media data export
+# Kaltura data export
 
 
 # Configuration
