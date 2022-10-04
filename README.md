@@ -4,7 +4,7 @@
 # Configuration
 Before running the script, follow these steps:
 
-1. Download the [Kaltura PHP 5.3+ API Client archive](https://developer.kaltura.com/api-docs/Client_Libraries) and extract into the `BASE_DIR/kaltura-client` directory (or edit `accountdump.php` to point to a different path)
+1. Download the [Kaltura PHP 5.3+ API Client archive](https://developer.kaltura.com/api-docs/Client_Libraries) and extract onto the `BASE_DIR/kaltura-client` directory (or edit `accountdump.php` to point to a different path)
 2. Edit `accountdump.php` and set the following parameters:  
 	* `PARTNER_ID`: the Kaltura partner ID
 	* `PARTNER_NAME`: the account name (only used logging and output filename)
