@@ -19,8 +19,7 @@ class KalturaContentAnalytics implements IKalturaLogger
 	// Kaltura session length. Please note the script may run for a while so it mustn't be too short.
 	const KS_EXPIRY_TIME = 86000; 
 	// defines the entry statuses to retrieve. Add KalturaEntryStatus::DELETED to include deleted entries. 
-	//const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); 
-	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY); 
+	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); 
 	const ENTRY_TYPE_IN = array(KalturaMediaType::VIDEO, KalturaMediaType::AUDIO); //defines the entry types to retrieve 
 	 // the entry object members to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entry ID, captions and categories will be added to the below
 	const ENTRY_FIELDS = array('name', 'userId', 'msDuration', 'createdAt', 'updatedAt', 'lastPlayedAt', 'status', 'views', 'plays', 'tags', 'adminTags');
