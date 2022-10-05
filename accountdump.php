@@ -18,8 +18,9 @@ class KalturaContentAnalytics implements IKalturaLogger
 	const SERVICE_URL = 'https://www.kaltura.com'; 
 	// Kaltura session length. Please note the script may run for a while so it mustn't be too short.
 	const KS_EXPIRY_TIME = 86000; 
-	// defines the entry statuses to retrieve. 
-	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); 
+	// defines the entry statuses to retrieve. Add KalturaEntryStatus::DELETED to include deleted entries. 
+	//const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY, KalturaEntryStatus::PENDING, KalturaEntryStatus::MODERATE, KalturaEntryStatus::BLOCKED, KalturaEntryStatus::NO_CONTENT); 
+	const ENTRY_STATUS_IN = array(KalturaEntryStatus::PRECONVERT, KalturaEntryStatus::READY); 
 	const ENTRY_TYPE_IN = array(KalturaMediaType::VIDEO, KalturaMediaType::AUDIO); //defines the entry types to retrieve 
 	 // the entry object members to export (excluding custom metadata, that is set in METADATA_PROFILE_ID), entry ID, captions and categories will be added to the below
 	const ENTRY_FIELDS = array('name', 'userId', 'msDuration', 'createdAt', 'updatedAt', 'lastPlayedAt', 'status', 'views', 'plays', 'tags', 'adminTags');
@@ -51,6 +52,23 @@ class KalturaContentAnalytics implements IKalturaLogger
 	{
 		$errline = date('Y-m-d H:i:s') . ' ' .  $message . "\n";
 		file_put_contents(KalturaContentAnalytics::ERROR_LOG_FILE, $errline, FILE_APPEND);
+	}
+	
+	public static function formatMilliseconds($ms) 
+	{
+
+	    $uSec = $ms % 1000;
+	    $ms = floor($ms / 1000);
+
+	    $seconds = $ms % 60;
+	    $ms = floor($ms / 60);
+
+	    $minutes = $ms % 60;
+	    $ms = floor($ms / 60);
+
+	    $hour = $ms ;
+
+	    return sprintf('%02d:%02d:%02d', $hour, $minutes, $seconds);
 	}
 
 	public function run()
@@ -311,8 +329,13 @@ class KalturaContentAnalytics implements IKalturaLogger
 		$header = array();
 		$header[] = "Entry ID";
 		foreach (KalturaContentAnalytics::ENTRY_FIELDS as $entryField) {
-		    $words = preg_split('/(?=[A-Z])/',$entryField);
-		    $header[] = ucfirst(implode(' ', $words));
+		    if ($entryField == 'msDuration'){
+			// we'll be converting that one to HH:MM format later
+			$header[] = 'Entry Duration';
+		    }else{
+			$words = preg_split('/(?=[A-Z])/',$entryField);
+			$header[] = ucfirst(implode(' ', $words));
+		    }
 		}
 		$header[] = "Category IDs";
 		$header[] = "Category Names";
@@ -347,6 +370,8 @@ class KalturaContentAnalytics implements IKalturaLogger
 				$refl = new ReflectionClass('KalturaEntryStatus');
 				$statuses = $refl->getConstants();
 				$row[] = array_search($entry[$entryField], $statuses);
+			    }elseif ($entryField == 'msDuration'){
+				$row[] = self::formatMilliseconds((int)$entry[$entryField]);
 			    }elseif (in_array($entryField, array('createdAt','updatedAt'))){
 				$row[] = gmdate('Y-M-d, h:ia',$entry[$entryField]);
 			    }else{
